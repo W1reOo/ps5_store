@@ -21,7 +21,7 @@ public class ShopAddressController extends BaseController {
         return AjaxResult.success(addressService.getRegionsByParent(parentId));
     }
 
-    /** 获取当前用户地址列表 */
+    /** 获取当前用户地址列表  */
     @GetMapping("/list")
     public AjaxResult list() {
         Long userId = SecurityUtils.getUserId();
