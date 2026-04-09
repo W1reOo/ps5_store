@@ -38,7 +38,7 @@ export default {
   },
   data() {
     return {
-      title: process.env.VUE_APP_TITLE,
+      title: process.env.VUE_APP_TITLE || 'PS5商城管理后台',
       logo: logoImg
     }
   }

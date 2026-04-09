@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">PS5 Placeholder</title>
+  <desc id="desc">Fallback image for PS5 game cover</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)" rx="36" />
+  <circle cx="400" cy="280" r="110" fill="rgba(255,255,255,0.08)" />
+  <path d="M348 214h74c53 0 94 32 94 80 0 50-41 82-94 82h-34v84h-40V214zm71 126c30 0 51-14 51-46 0-28-21-43-51-43h-31v89h31z" fill="#ffffff"/>
+  <text x="400" y="550" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="700" fill="#ffffff">PS5</text>
+  <text x="400" y="612" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#cbd5e1">GAME DISC STORE</text>
+</svg>

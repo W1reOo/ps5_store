@@ -76,10 +76,13 @@ public class SysRegisterService
         }
         else
         {
-            sysUser.setNickName(username);
+            sysUser.setNickName(registerBody.getNickName() != null && !registerBody.getNickName().isEmpty()
+                    ? registerBody.getNickName() : username);
             sysUser.setPwdUpdateDate(DateUtils.getNowDate());
             sysUser.setPassword(SecurityUtils.encryptPassword(password));
-            boolean regFlag = userService.registerUser(sysUser);
+            // 注册用户默认分配普通角色（role_id = 2）
+            sysUser.setRoleIds(new Long[]{ 2L });
+            boolean regFlag = userService.insertUser(sysUser) > 0;
             if (!regFlag)
             {
                 msg = "注册失败,请联系系统管理人员";

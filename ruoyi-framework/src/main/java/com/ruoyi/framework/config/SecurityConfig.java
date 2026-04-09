@@ -104,6 +104,10 @@ public class SecurityConfig
                     // 静态资源，可匿名访问
                     .requestMatchers(HttpMethod.GET, "/", "/*.html", "/**.html", "/**.css", "/**.js", "/profile/**").permitAll()
                     .requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**", "/druid/**").permitAll()
+                    // 商城公开接口（游戏列表、详情、分类、评论列表）无需登录
+                    .requestMatchers(HttpMethod.GET, "/shop/game/list", "/shop/game/*", "/shop/category/list").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/shop/comment/list").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/shop/address/region").permitAll()
                     // 除上面外的所有请求全部需要鉴权认证
                     .anyRequest().authenticated();
             })

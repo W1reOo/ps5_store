@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.Ps5OrderMapper">
+
+    <resultMap type="Ps5Order" id="Ps5OrderResult">
+        <id     property="orderId"         column="order_id"         />
+        <result property="orderNo"         column="order_no"         />
+        <result property="userId"          column="user_id"          />
+        <result property="totalAmount"     column="total_amount"     />
+        <result property="status"          column="status"           />
+        <result property="receiverName"    column="receiver_name"    />
+        <result property="receiverPhone"   column="receiver_phone"   />
+        <result property="receiverAddress" column="receiver_address" />
+        <result property="expressCompany"  column="express_company"  />
+        <result property="trackingNo"      column="tracking_no"      />
+        <result property="payTime"         column="pay_time"         />
+        <result property="deliverTime"     column="deliver_time"     />
+        <result property="finishTime"      column="finish_time"      />
+        <result property="remark"          column="remark"           />
+        <result property="createBy"        column="create_by"        />
+        <result property="createTime"      column="create_time"      />
+        <result property="updateBy"        column="update_by"        />
+        <result property="updateTime"      column="update_time"      />
+    </resultMap>
+
+    <resultMap type="Ps5OrderItem" id="Ps5OrderItemResult">
+        <id     property="itemId"     column="item_id"     />
+        <result property="orderId"    column="order_id"    />
+        <result property="gameId"     column="game_id"     />
+        <result property="gameName"   column="game_name"   />
+        <result property="coverImage" column="cover_image" />
+        <result property="price"      column="price"       />
+        <result property="quantity"   column="quantity"    />
+    </resultMap>
+
+    <sql id="selectOrderVo">
+        SELECT order_id, order_no, user_id, total_amount, status, receiver_name, receiver_phone,
+               receiver_address, express_company, tracking_no,
+               pay_time, deliver_time, finish_time, remark,
+               create_by, create_time, update_by, update_time
+        FROM ps5_order
+    </sql>
+
+    <select id="selectOrderList" parameterType="Ps5Order" resultMap="Ps5OrderResult">
+        <include refid="selectOrderVo"/>
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                AND order_no LIKE concat('%', #{orderNo}, '%')
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectOrderListByUserId" parameterType="Long" resultMap="Ps5OrderResult">
+        <include refid="selectOrderVo"/>
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectOrderById" parameterType="Long" resultMap="Ps5OrderResult">
+        <include refid="selectOrderVo"/>
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="selectOrderByNo" parameterType="String" resultMap="Ps5OrderResult">
+        <include refid="selectOrderVo"/>
+        WHERE order_no = #{orderNo}
+    </select>
+
+    <insert id="insertOrder" parameterType="Ps5Order" useGeneratedKeys="true" keyProperty="orderId">
+        INSERT INTO ps5_order (order_no, user_id, total_amount, status, receiver_name, receiver_phone,
+            receiver_address, remark, create_by, create_time)
+        VALUES (#{orderNo}, #{userId}, #{totalAmount}, '0', #{receiverName}, #{receiverPhone},
+            #{receiverAddress}, #{remark}, #{createBy}, sysdate())
+    </insert>
+
+    <!-- OGNL 中 status == '1' 对 String 不可靠，改用 equals 才能稳定写入各时间字段 -->
+    <update id="updateOrderStatus">
+        UPDATE ps5_order
+        <set>
+            status = #{status},
+            <if test='status != null and "1".equals(status)'>pay_time = sysdate(),</if>
+            <if test='status != null and "2".equals(status)'>deliver_time = sysdate(),</if>
+            <if test='status != null and "3".equals(status)'>finish_time = sysdate(),</if>
+            update_time = sysdate()
+        </set>
+        WHERE order_id = #{orderId}
+    </update>
+
+    <update id="payOrder">
+        UPDATE ps5_order
+        SET status = '1',
+            pay_time = sysdate(),
+            update_time = sysdate()
+        WHERE order_id = #{orderId} AND status = '0'
+    </update>
+
+    <update id="requestRefund">
+        UPDATE ps5_order
+        SET status = '5',
+            update_time = sysdate()
+        WHERE order_id = #{orderId}
+          AND user_id = #{userId}
+          AND status = '1'
+    </update>
+
+    <update id="approveRefund">
+        UPDATE ps5_order
+        SET status = '6',
+            update_time = sysdate()
+        WHERE order_id = #{orderId}
+          AND status = '5'
+    </update>
+
+    <update id="deliverOrderWithTracking" parameterType="Ps5Order">
+        UPDATE ps5_order
+        SET status = '2',
+            express_company = #{expressCompany},
+            tracking_no = #{trackingNo},
+            deliver_time = sysdate(),
+            update_time = sysdate()
+        WHERE order_id = #{orderId} AND status = '1'
+    </update>
+
+    <insert id="insertOrderItem" parameterType="Ps5OrderItem">
+        INSERT INTO ps5_order_item (order_id, game_id, game_name, cover_image, price, quantity)
+        VALUES (#{orderId}, #{gameId}, #{gameName}, #{coverImage}, #{price}, #{quantity})
+    </insert>
+
+    <select id="selectOrderItemsByOrderId" parameterType="Long" resultMap="Ps5OrderItemResult">
+        SELECT item_id, order_id, game_id, game_name, cover_image, price, quantity
+        FROM ps5_order_item
+        WHERE order_id = #{orderId}
+    </select>
+
+</mapper>

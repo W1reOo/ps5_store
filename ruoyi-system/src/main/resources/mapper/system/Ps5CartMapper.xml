@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.Ps5CartMapper">
+
+    <resultMap type="Ps5Cart" id="Ps5CartResult">
+        <id     property="cartId"        column="cart_id"        />
+        <result property="userId"        column="user_id"        />
+        <result property="gameId"        column="game_id"        />
+        <result property="quantity"      column="quantity"       />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="gameName"      column="game_name"      />
+        <result property="coverImage"    column="cover_image"    />
+        <result property="price"         column="price"          />
+        <result property="originalPrice" column="original_price" />
+        <result property="stock"         column="stock"          />
+    </resultMap>
+
+    <select id="selectCartByUserId" parameterType="Long" resultMap="Ps5CartResult">
+        SELECT c.cart_id, c.user_id, c.game_id, c.quantity, c.create_time, c.update_time,
+               g.game_name, g.cover_image, g.price, g.original_price, g.stock
+        FROM ps5_cart c
+        LEFT JOIN ps5_game g ON c.game_id = g.game_id
+        WHERE c.user_id = #{userId}
+        ORDER BY c.create_time DESC
+    </select>
+
+    <select id="selectCartByUserAndGame" resultMap="Ps5CartResult">
+        SELECT cart_id, user_id, game_id, quantity, create_time, update_time
+        FROM ps5_cart
+        WHERE user_id = #{userId} AND game_id = #{gameId}
+        LIMIT 1
+    </select>
+
+    <select id="selectCartById" parameterType="Long" resultMap="Ps5CartResult">
+        SELECT c.cart_id, c.user_id, c.game_id, c.quantity, c.create_time, c.update_time,
+               g.game_name, g.cover_image, g.price, g.original_price, g.stock
+        FROM ps5_cart c
+        LEFT JOIN ps5_game g ON c.game_id = g.game_id
+        WHERE c.cart_id = #{cartId}
+    </select>
+
+    <insert id="insertCart" parameterType="Ps5Cart" useGeneratedKeys="true" keyProperty="cartId">
+        INSERT INTO ps5_cart (user_id, game_id, quantity, create_time, update_time)
+        VALUES (#{userId}, #{gameId}, #{quantity}, sysdate(), sysdate())
+    </insert>
+
+    <update id="updateCartQuantity">
+        UPDATE ps5_cart SET quantity = #{quantity}, update_time = sysdate()
+        WHERE cart_id = #{cartId}
+    </update>
+
+    <delete id="deleteCartById" parameterType="Long">
+        DELETE FROM ps5_cart WHERE cart_id = #{cartId}
+    </delete>
+
+    <delete id="deleteCartByIds" parameterType="Long">
+        DELETE FROM ps5_cart WHERE cart_id IN
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <delete id="deleteCartByUserId" parameterType="Long">
+        DELETE FROM ps5_cart WHERE user_id = #{userId}
+    </delete>
+
+</mapper>

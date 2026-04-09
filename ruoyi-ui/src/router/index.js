@@ -44,12 +44,14 @@ export const constantRoutes = [
   {
     path: '/login',
     component: () => import('@/views/login'),
-    hidden: true
+    hidden: true,
+    meta: { title: '账号登录' }
   },
   {
     path: '/register',
     component: () => import('@/views/register'),
-    hidden: true
+    hidden: true,
+    meta: { title: '注册账号' }
   },
   {
     path: '/404',
@@ -62,12 +64,16 @@ export const constantRoutes = [
     hidden: true
   },
   {
-    path: '',
+    path: '/',
+    redirect: '/shop/home',
+    hidden: true
+  },
+  {
+    path: '/index',
     component: Layout,
-    redirect: 'index',
     children: [
       {
-        path: 'index',
+        path: '',
         component: () => import('@/views/index'),
         name: 'Index',
         meta: { title: '首页', icon: 'dashboard', affix: true }
@@ -79,6 +85,56 @@ export const constantRoutes = [
     component: () => import('@/views/lock'),
     hidden: true,
     meta: { title: '锁定屏幕' }
+  },
+  {
+    path: '/shop/home',
+    component: () => import('@/views/shop/home/index'),
+    hidden: true,
+    name: 'ShopHome',
+    meta: { title: '商城首页' }
+  },
+  {
+    path: '/shop/detail/:gameId',
+    component: () => import('@/views/shop/detail/index'),
+    hidden: true,
+    name: 'ShopDetail',
+    meta: { title: '游戏详情' }
+  },
+  {
+    path: '/shop/cart',
+    component: () => import('@/views/shop/cart/index'),
+    hidden: true,
+    name: 'ShopCart',
+    meta: { title: '购物车' }
+  },
+  {
+    path: '/shop/orders',
+    component: () => import('@/views/shop/orders/index'),
+    hidden: true,
+    name: 'ShopOrders',
+    meta: { title: '我的订单' }
+  },
+  // 兜底：销售额统计（若菜单生成路由异常导致跳转 404，这里确保一定存在）
+  {
+    path: '/shop/revenue',
+    component: Layout,
+    hidden: true,
+    name: 'ShopRevenue',
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/shop/revenue/index'),
+        name: 'ShopRevenuePage',
+        meta: { title: '销售额统计' }
+      }
+    ]
+  },
+  {
+    path: '/shop/account',
+    component: () => import('@/views/shop/account/index'),
+    hidden: true,
+    name: 'ShopAccount',
+    meta: { title: '账号中心' }
   },
   {
     path: '/user',

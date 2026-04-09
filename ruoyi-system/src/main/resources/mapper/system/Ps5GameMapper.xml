@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.Ps5GameMapper">
+
+    <resultMap type="Ps5Game" id="Ps5GameResult">
+        <id     property="gameId"        column="game_id"        />
+        <result property="gameName"      column="game_name"      />
+        <result property="categoryId"    column="category_id"    />
+        <result property="categoryName"  column="category_name"  />
+        <result property="publisher"     column="publisher"      />
+        <result property="developer"     column="developer"      />
+        <result property="description"   column="description"    />
+        <result property="coverImage"    column="cover_image"    />
+        <result property="price"         column="price"          />
+        <result property="originalPrice" column="original_price" />
+        <result property="stock"         column="stock"          />
+        <result property="sales"         column="sales"          />
+        <result property="releaseDate"   column="release_date"   />
+        <result property="language"      column="language"       />
+        <result property="rating"        column="rating"         />
+        <result property="status"        column="status"         />
+        <result property="isHot"         column="is_hot"         />
+        <result property="isNew"         column="is_new"         />
+        <result property="createBy"      column="create_by"      />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"      column="update_by"      />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"        column="remark"         />
+    </resultMap>
+
+    <sql id="selectGameVo">
+        SELECT g.game_id, g.game_name, g.category_id, c.category_name, g.publisher, g.developer,
+               g.description, g.cover_image, g.price, g.original_price, g.stock, g.sales,
+               g.release_date, g.language, g.rating, g.status, g.is_hot, g.is_new,
+               g.create_by, g.create_time, g.update_by, g.update_time, g.remark
+        FROM ps5_game g
+        LEFT JOIN ps5_category c ON g.category_id = c.category_id
+    </sql>
+
+    <select id="selectGameList" parameterType="Ps5Game" resultMap="Ps5GameResult">
+        <include refid="selectGameVo"/>
+        <where>
+            <if test="gameName != null and gameName != ''">
+                AND g.game_name LIKE concat('%', #{gameName}, '%')
+            </if>
+            <if test="categoryId != null">
+                AND g.category_id = #{categoryId}
+            </if>
+            <if test="status != null and status != ''">
+                AND g.status = #{status}
+            </if>
+            <if test="isHot != null and isHot != ''">
+                AND g.is_hot = #{isHot}
+            </if>
+            <if test="isNew != null and isNew != ''">
+                AND g.is_new = #{isNew}
+            </if>
+        </where>
+        ORDER BY g.sales DESC, g.game_id DESC
+    </select>
+
+    <select id="selectGameById" parameterType="Long" resultMap="Ps5GameResult">
+        <include refid="selectGameVo"/>
+        WHERE g.game_id = #{gameId}
+    </select>
+
+    <insert id="insertGame" parameterType="Ps5Game" useGeneratedKeys="true" keyProperty="gameId">
+        INSERT INTO ps5_game (game_name, category_id, publisher, developer, description, cover_image,
+            price, original_price, stock, sales, release_date, language, rating, status,
+            is_hot, is_new, create_by, create_time, remark)
+        VALUES (#{gameName}, #{categoryId}, #{publisher}, #{developer}, #{description}, #{coverImage},
+            #{price}, #{originalPrice}, #{stock}, #{sales}, #{releaseDate}, #{language}, #{rating},
+            #{status}, #{isHot}, #{isNew}, #{createBy}, sysdate(), #{remark})
+    </insert>
+
+    <update id="updateGame" parameterType="Ps5Game">
+        UPDATE ps5_game
+        <set>
+            <if test="gameName != null">game_name = #{gameName},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="publisher != null">publisher = #{publisher},</if>
+            <if test="developer != null">developer = #{developer},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="coverImage != null">cover_image = #{coverImage},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="originalPrice != null">original_price = #{originalPrice},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="sales != null">sales = #{sales},</if>
+            <if test="releaseDate != null">release_date = #{releaseDate},</if>
+            <if test="language != null">language = #{language},</if>
+            <if test="rating != null">rating = #{rating},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="isHot != null">is_hot = #{isHot},</if>
+            <if test="isNew != null">is_new = #{isNew},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        WHERE game_id = #{gameId}
+    </update>
+
+    <delete id="deleteGameByIds" parameterType="Long">
+        DELETE FROM ps5_game WHERE game_id IN
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <update id="updateGameStock">
+        UPDATE ps5_game SET stock = stock - #{quantity}, update_time = sysdate()
+        WHERE game_id = #{gameId} AND stock >= #{quantity}
+    </update>
+
+    <update id="updateGameSales">
+        UPDATE ps5_game SET sales = sales + #{quantity}, update_time = sysdate()
+        WHERE game_id = #{gameId}
+    </update>
+
+</mapper>

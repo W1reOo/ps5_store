@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.ShopRegionMapper">
+
+    <resultMap id="RegionResult" type="com.ruoyi.system.domain.ShopRegion">
+        <id     property="regionId"   column="region_id"/>
+        <result property="parentId"   column="parent_id"/>
+        <result property="regionName" column="region_name"/>
+        <result property="level"      column="level"/>
+        <result property="sortOrder"  column="sort_order"/>
+    </resultMap>
+
+    <select id="selectByParentId" resultMap="RegionResult">
+        SELECT region_id, parent_id, region_name, level, sort_order
+        FROM shop_region
+        WHERE parent_id = #{parentId}
+        ORDER BY sort_order, region_id
+    </select>
+
+    <select id="selectById" resultMap="RegionResult">
+        SELECT region_id, parent_id, region_name, level, sort_order
+        FROM shop_region
+        WHERE region_id = #{regionId}
+    </select>
+
+</mapper>

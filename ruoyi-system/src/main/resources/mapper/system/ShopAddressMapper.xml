@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.ShopAddressMapper">
+
+    <resultMap id="AddressResult" type="com.ruoyi.system.domain.ShopAddress">
+        <id     property="addressId"    column="address_id"/>
+        <result property="userId"       column="user_id"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="phone"        column="phone"/>
+        <result property="provinceId"   column="province_id"/>
+        <result property="provinceName" column="province_name"/>
+        <result property="cityId"       column="city_id"/>
+        <result property="cityName"     column="city_name"/>
+        <result property="districtId"   column="district_id"/>
+        <result property="districtName" column="district_name"/>
+        <result property="detail"       column="detail"/>
+        <result property="remark"       column="remark"/>
+        <result property="isDefault"    column="is_default"/>
+        <result property="createTime"   column="create_time"/>
+        <result property="updateTime"   column="update_time"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="AddressResult">
+        SELECT * FROM shop_address
+        WHERE user_id = #{userId}
+        ORDER BY is_default DESC, create_time DESC
+    </select>
+
+    <select id="selectById" resultMap="AddressResult">
+        SELECT * FROM shop_address WHERE address_id = #{addressId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="addressId">
+        INSERT INTO shop_address(user_id, receiver_name, phone,
+            province_id, province_name, city_id, city_name, district_id, district_name,
+            detail, remark, is_default, create_time, update_time)
+        VALUES(#{userId}, #{receiverName}, #{phone},
+               #{provinceId}, #{provinceName}, #{cityId}, #{cityName}, #{districtId}, #{districtName},
+               #{detail}, #{remark}, #{isDefault}, NOW(), NOW())
+    </insert>
+
+    <update id="update">
+        UPDATE shop_address
+        SET receiver_name = #{receiverName},
+            phone         = #{phone},
+            province_id   = #{provinceId},
+            province_name = #{provinceName},
+            city_id       = #{cityId},
+            city_name     = #{cityName},
+            district_id   = #{districtId},
+            district_name = #{districtName},
+            detail        = #{detail},
+            remark        = #{remark},
+            is_default    = #{isDefault},
+            update_time   = NOW()
+        WHERE address_id = #{addressId} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM shop_address WHERE address_id = #{addressId}
+    </delete>
+
+    <update id="clearDefault">
+        UPDATE shop_address SET is_default = 0 WHERE user_id = #{userId}
+    </update>
+
+    <update id="setDefault">
+        UPDATE shop_address SET is_default = 1 WHERE address_id = #{addressId}
+    </update>
+
+</mapper>

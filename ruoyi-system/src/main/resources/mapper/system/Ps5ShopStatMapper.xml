@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.Ps5ShopStatMapper">
+
+    <resultMap type="Ps5GameRevenueRow" id="GameRevenueResult">
+        <result property="gameId" column="game_id"/>
+        <result property="gameName" column="game_name"/>
+        <result property="soldQuantity" column="sold_quantity"/>
+        <result property="revenue" column="revenue"/>
+    </resultMap>
+
+    <!-- 有效销售：已付款且未最终退款。退款申请中(5)仍计入，仅已退款(6)剔除 -->
+    <select id="selectTotalPaidRevenue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM ps5_order
+        WHERE status IN ('1', '2', '3', '5')
+    </select>
+
+    <select id="selectPaidOrderCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM ps5_order
+        WHERE status IN ('1', '2', '3', '5')
+    </select>
+
+    <select id="selectRevenueByGameTop3" resultMap="GameRevenueResult">
+        SELECT t.game_id,
+               t.game_name,
+               t.sold_quantity,
+               t.revenue
+        FROM (
+            SELECT oi.game_id,
+                   g.game_name,
+                   SUM(oi.quantity) AS sold_quantity,
+                   SUM(oi.price * oi.quantity) AS revenue
+            FROM ps5_order_item oi
+            INNER JOIN ps5_order o ON oi.order_id = o.order_id AND o.status IN ('1', '2', '3', '5')
+            INNER JOIN ps5_game g ON oi.game_id = g.game_id
+            GROUP BY oi.game_id, g.game_name
+        ) t
+        ORDER BY t.revenue DESC
+        LIMIT 3
+    </select>
+
+    <!-- 按日营业额：归属日 = 付款时间 > 创建时间 > 完成时间（仅当前两者为空时，如历史/手工数据） -->
+    <!-- 说明：与总览相同订单状态；若用户选「完成日」看曲线，需注意金额仍记在付款日（业务上营业额以支付为准） -->
+    <select id="selectDailyRevenue" resultType="Ps5DailyRevenuePoint">
+        SELECT DATE_FORMAT(
+                   COALESCE(o.pay_time, o.create_time, o.finish_time),
+                   '%Y-%m-%d'
+               ) AS stat_date,
+               COALESCE(SUM(o.total_amount), 0) AS revenue
+        FROM ps5_order o
+        WHERE o.status IN ('1', '2', '3', '5')
+          AND DATE(COALESCE(o.pay_time, o.create_time, o.finish_time)) BETWEEN #{beginDate} AND #{endDate}
+        GROUP BY DATE(COALESCE(o.pay_time, o.create_time, o.finish_time))
+        ORDER BY DATE(COALESCE(o.pay_time, o.create_time, o.finish_time))
+    </select>
+</mapper>
