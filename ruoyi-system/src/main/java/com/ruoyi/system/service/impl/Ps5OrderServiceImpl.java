@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.ruoyi.system.domain.Ps5Cart;
 import com.ruoyi.system.domain.Ps5Game;
 import com.ruoyi.system.domain.Ps5Order;
 import com.ruoyi.system.domain.Ps5OrderItem;
@@ -71,16 +70,16 @@ public class Ps5OrderServiceImpl implements IPs5OrderService {
             if (game == null || !"0".equals(game.getStatus())) {
                 throw new RuntimeException("游戏 [" + item.getGameId() + "] 不存在或已下架");
             }
-            if (game.getStock() < item.getQuantity()) {
-                throw new RuntimeException("游戏 [" + game.getGameName() + "] 库存不足");
-            }
             item.setGameName(game.getGameName());
             item.setCoverImage(game.getCoverImage());
             item.setPrice(game.getPrice());
             total = total.add(game.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
 
-            // 扣库存（销量在付款后累加）
-            gameMapper.updateGameStock(game.getGameId(), item.getQuantity());
+            // 防超卖：以条件更新影响行数为准（UPDATE ... WHERE stock >= quantity）
+            int affected = gameMapper.updateGameStock(game.getGameId(), item.getQuantity());
+            if (affected == 0) {
+                throw new RuntimeException("游戏 [" + game.getGameName() + "] 库存不足，请刷新后重试");
+            }
         }
         order.setTotalAmount(total);
 
