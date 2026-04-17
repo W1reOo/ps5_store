@@ -24,7 +24,7 @@ public class ShopRevenueController extends BaseController {
     @Autowired
     private IPs5ShopStatService statService;
 
-    @PreAuthorize("@ss.hasPermi('shop:revenue:list')")
+    @PreAuthorize("@ss.hasRole('shop_owner') and @ss.hasPermi('shop:revenue:list')")
     @Log(title = "销售额统计", businessType = BusinessType.OTHER)
     @GetMapping("/admin/revenue/overview")
     public AjaxResult overview() {
@@ -35,7 +35,7 @@ public class ShopRevenueController extends BaseController {
     /**
      * 按日营业额（付款日），用于趋势图
      */
-    @PreAuthorize("@ss.hasPermi('shop:revenue:list')")
+    @PreAuthorize("@ss.hasRole('shop_owner') and @ss.hasPermi('shop:revenue:list')")
     @GetMapping("/admin/revenue/trend")
     public AjaxResult trend(@RequestParam String beginDate, @RequestParam String endDate) {
         if (StringUtils.isEmpty(beginDate) || StringUtils.isEmpty(endDate)) {

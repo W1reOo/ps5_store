@@ -144,4 +144,12 @@ public interface SysUserMapper
      * @return 结果
      */
     public SysUser checkEmailUnique(String email);
+
+    /**
+     * 根据角色标识统计有效用户数量（未删除且启用）
+     *
+     * @param roleKey 角色标识
+     * @return 数量
+     */
+    public int countEnabledUserByRoleKey(@Param("roleKey") String roleKey);
 }

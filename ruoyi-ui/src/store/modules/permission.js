@@ -30,19 +30,26 @@ const permission = {
   },
   actions: {
     // 生成路由
-    GenerateRoutes({ commit }) {
+    GenerateRoutes({ commit, rootGetters }) {
       return new Promise(resolve => {
         // 向后端请求路由数据
         getRouters().then(res => {
+          const roles = rootGetters.roles || []
+          const isStaffOnly = roles.includes('shop_staff') && !roles.includes('admin')
           const sdata = JSON.parse(JSON.stringify(res.data))
           const rdata = JSON.parse(JSON.stringify(res.data))
-          const sidebarRoutes = filterAsyncRouter(sdata)
-          const rewriteRoutes = filterAsyncRouter(rdata, false, true)
+          const rawSidebarRoutes = filterAsyncRouter(sdata)
+          const rawRewriteRoutes = filterAsyncRouter(rdata, false, true)
+          const sidebarRoutes = isStaffOnly ? removeStaffHomeRoutes(rawSidebarRoutes) : rawSidebarRoutes
+          const rewriteRoutes = isStaffOnly ? removeStaffHomeRoutes(rawRewriteRoutes) : rawRewriteRoutes
           const asyncRoutes = filterDynamicRoutes(dynamicRoutes)
+          const baseSidebarRoutes = isStaffOnly
+            ? constantRoutes.filter(route => route.path !== '/index')
+            : constantRoutes
           rewriteRoutes.push({ path: '*', redirect: '/404', hidden: true })
           router.addRoutes(asyncRoutes)
           commit('SET_ROUTES', rewriteRoutes)
-          commit('SET_SIDEBAR_ROUTERS', constantRoutes.concat(sidebarRoutes))
+          commit('SET_SIDEBAR_ROUTERS', baseSidebarRoutes.concat(sidebarRoutes))
           commit('SET_DEFAULT_ROUTES', sidebarRoutes)
           commit('SET_TOPBAR_ROUTES', sidebarRoutes)
           resolve(rewriteRoutes)
@@ -50,6 +57,32 @@ const permission = {
       })
     }
   }
+}
+
+function removeStaffHomeRoutes(routes = []) {
+  return routes
+    .filter(route => !isStaffHomeRoute(route))
+    .map(route => {
+      const next = { ...route }
+      if (next.children && next.children.length) {
+        next.children = removeStaffHomeRoutes(next.children)
+      }
+      return next
+    })
+}
+
+function isStaffHomeRoute(route = {}) {
+  const path = String(route.path || '').toLowerCase()
+  const component = String(route.component || '').toLowerCase()
+  const title = String((route.meta && route.meta.title) || route.name || '').toLowerCase()
+  return path === '/index'
+    || path === 'home'
+    || path === '/shop/home'
+    || path.includes('/shop/home')
+    || component === 'shop/home/index'
+    || component.includes('shop/home/index')
+    || title.includes('商城首页')
+    || title === '首页'
 }
 
 // 遍历后台传来的路由字符串，转换为组件对象

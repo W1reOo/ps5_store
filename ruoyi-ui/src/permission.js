@@ -16,9 +16,11 @@ const whiteList = [
   '/shop/account', '/shop/cart', '/shop/orders', '/shop/favorites'
 ]
 
-// 后台管理路径前缀（非 admin 不应进入）
+// 后台管理路径前缀
 const adminPaths = ['/index', '/system', '/monitor', '/tool', '/shop/category', '/shop/game', '/shop/order']
 const isAdminPath = (path) => adminPaths.some(p => path === p || path.startsWith(p + '/') || path.startsWith(p + '?'))
+const isBackOfficeRole = (roles = []) => roles.includes('admin') || roles.includes('shop_owner') || roles.includes('shop_staff')
+const isStaffRole = (roles = []) => roles.includes('shop_staff') && !roles.includes('admin')
 
 const isWhiteList = (path) => {
   return whiteList.some(pattern => isPathMatch(pattern, path))
@@ -40,9 +42,15 @@ router.beforeEach((to, from, next) => {
     const isLock = store.getters.isLock
     /* has token*/
     if (to.path === '/login') {
-      // 已登录再访问登录页：admin去后台，普通用户去商城首页
+      // 已登录再访问登录页：后台角色去后台，普通用户去商城首页
       const roles = store.getters.roles || []
-      next({ path: roles.includes('admin') ? '/index' : '/shop/home' })
+      if (roles.includes('admin')) {
+        next({ path: '/index' })
+      } else if (isBackOfficeRole(roles)) {
+        next({ path: '/shop/order' })
+      } else {
+        next({ path: '/shop/home' })
+      }
       NProgress.done()
     } else if (isWhiteList(to.path)) {
       next()
@@ -60,10 +68,14 @@ router.beforeEach((to, from, next) => {
           store.dispatch('GenerateRoutes').then(accessRoutes => {
             router.addRoutes(accessRoutes)
             const roles = store.getters.roles || []
-            const isAdmin = roles.includes('admin')
-            if (isAdmin) {
-              // 管理员：进后台（目标是 /index）
-              next({ ...to, replace: true })
+            const canBackOffice = isBackOfficeRole(roles)
+            if (canBackOffice) {
+              // 员工默认进订单管理，避免落到 /index 触发无权限统计请求
+              if (isStaffRole(roles) && to.path === '/index') {
+                next({ path: '/shop/order', replace: true })
+              } else {
+                next({ ...to, replace: true })
+              }
             } else {
               // 普通用户：若误入后台则踢到商城首页，否则正常进入
               next({ path: isAdminPath(to.path) ? '/shop/home' : to.path, replace: true })
@@ -78,7 +90,9 @@ router.beforeEach((to, from, next) => {
       } else {
         // roles 已有，直接放行（但非 admin 访问后台路径要拦截）
         const roles = store.getters.roles || []
-        if (!roles.includes('admin') && isAdminPath(to.path)) {
+        if (isStaffRole(roles) && to.path === '/index') {
+          next({ path: '/shop/order' })
+        } else if (!isBackOfficeRole(roles) && isAdminPath(to.path)) {
           next({ path: '/shop/home' })
         } else {
           next()

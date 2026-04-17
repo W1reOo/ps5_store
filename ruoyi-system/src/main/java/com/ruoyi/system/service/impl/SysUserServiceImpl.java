@@ -293,6 +293,8 @@ public class SysUserServiceImpl implements ISysUserService
     public int updateUser(SysUser user)
     {
         Long userId = user.getUserId();
+        // 防止通过改角色/状态把最后一个老板账号移除或停用
+        preventLastShopOwnerLossOnUpdate(user);
         // 删除用户与角色关联
         userRoleMapper.deleteUserRoleByUserId(userId);
         // 新增用户与角色管理
@@ -314,6 +316,7 @@ public class SysUserServiceImpl implements ISysUserService
     @Transactional
     public void insertUserAuth(Long userId, Long[] roleIds)
     {
+        preventLastShopOwnerLossOnRoleAuth(userId, roleIds);
         userRoleMapper.deleteUserRoleByUserId(userId);
         insertUserRole(userId, roleIds);
     }
@@ -327,6 +330,7 @@ public class SysUserServiceImpl implements ISysUserService
     @Override
     public int updateUserStatus(SysUser user)
     {
+        preventLastShopOwnerLossOnStatusChange(user);
         return userMapper.updateUserStatus(user.getUserId(), user.getStatus());
     }
 
@@ -459,6 +463,7 @@ public class SysUserServiceImpl implements ISysUserService
     @Transactional
     public int deleteUserById(Long userId)
     {
+        preventLastShopOwnerLossOnDelete(userId);
         // 删除用户与角色关联
         userRoleMapper.deleteUserRoleByUserId(userId);
         // 删除用户与岗位表
@@ -476,11 +481,18 @@ public class SysUserServiceImpl implements ISysUserService
     @Transactional
     public int deleteUserByIds(Long[] userIds)
     {
+        int ownerToDelete = 0;
         for (Long userId : userIds)
         {
             checkUserAllowed(new SysUser(userId));
             checkUserDataScope(userId);
+            SysUser current = userMapper.selectUserById(userId);
+            if (isEnabledShopOwner(current))
+            {
+                ownerToDelete++;
+            }
         }
+        ensureEnoughShopOwnerRemain(ownerToDelete);
         // 删除用户与角色关联
         userRoleMapper.deleteUserRole(userIds);
         // 删除用户与岗位关联
@@ -561,5 +573,97 @@ public class SysUserServiceImpl implements ISysUserService
             successMsg.insert(0, "恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
         }
         return successMsg.toString();
+    }
+
+    private void preventLastShopOwnerLossOnUpdate(SysUser user)
+    {
+        SysUser current = userMapper.selectUserById(user.getUserId());
+        if (!isEnabledShopOwner(current))
+        {
+            return;
+        }
+        boolean roleRemoved = !containsShopOwnerRole(user.getRoleIds());
+        boolean disabled = UserConstants.USER_DISABLE.equals(user.getStatus());
+        if (roleRemoved || disabled)
+        {
+            ensureEnoughShopOwnerRemain(1);
+        }
+    }
+
+    private void preventLastShopOwnerLossOnRoleAuth(Long userId, Long[] roleIds)
+    {
+        SysUser current = userMapper.selectUserById(userId);
+        if (isEnabledShopOwner(current) && !containsShopOwnerRole(roleIds))
+        {
+            ensureEnoughShopOwnerRemain(1);
+        }
+    }
+
+    private void preventLastShopOwnerLossOnStatusChange(SysUser user)
+    {
+        if (!UserConstants.USER_DISABLE.equals(user.getStatus()))
+        {
+            return;
+        }
+        SysUser current = userMapper.selectUserById(user.getUserId());
+        if (isEnabledShopOwner(current))
+        {
+            ensureEnoughShopOwnerRemain(1);
+        }
+    }
+
+    private void preventLastShopOwnerLossOnDelete(Long userId)
+    {
+        SysUser current = userMapper.selectUserById(userId);
+        if (isEnabledShopOwner(current))
+        {
+            ensureEnoughShopOwnerRemain(1);
+        }
+    }
+
+    private boolean isEnabledShopOwner(SysUser user)
+    {
+        return user != null
+                && UserConstants.NORMAL.equals(user.getStatus())
+                && hasRoleKey(user, UserConstants.SHOP_OWNER_ROLE_KEY);
+    }
+
+    private boolean hasRoleKey(SysUser user, String roleKey)
+    {
+        if (user == null || CollectionUtils.isEmpty(user.getRoles()))
+        {
+            return false;
+        }
+        return user.getRoles().stream().anyMatch(role -> roleKey.equals(role.getRoleKey()));
+    }
+
+    private boolean containsShopOwnerRole(Long[] roleIds)
+    {
+        if (StringUtils.isEmpty(roleIds))
+        {
+            return false;
+        }
+        for (Long roleId : roleIds)
+        {
+            SysRole role = roleMapper.selectRoleById(roleId);
+            if (role != null && UserConstants.SHOP_OWNER_ROLE_KEY.equals(role.getRoleKey()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void ensureEnoughShopOwnerRemain(int reduceCount)
+    {
+        if (reduceCount <= 0)
+        {
+            return;
+        }
+        int ownerCount = userMapper.countEnabledUserByRoleKey(UserConstants.SHOP_OWNER_ROLE_KEY);
+        if (ownerCount - reduceCount < 1)
+        {
+            throw new ServiceException("至少需要保留 1 个启用状态的老板账号");
+        }
     }
 }

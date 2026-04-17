@@ -67,6 +67,12 @@ public class UserConstants
     public final static boolean UNIQUE = true;
     public final static boolean NOT_UNIQUE = false;
 
+    /** 商城老板角色标识（超级管理员默认也拥有全部能力） */
+    public static final String SHOP_OWNER_ROLE_KEY = "shop_owner";
+
+    /** 商城员工角色标识 */
+    public static final String SHOP_STAFF_ROLE_KEY = "shop_staff";
+
     /**
      * 用户名长度限制
      */

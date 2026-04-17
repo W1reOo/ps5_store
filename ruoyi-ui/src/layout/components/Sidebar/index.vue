@@ -13,7 +13,7 @@
                 mode="vertical"
             >
                 <sidebar-item
-                    v-for="(route, index) in sidebarRouters"
+                    v-for="(route, index) in filteredSidebarRouters"
                     :key="route.path  + index"
                     :item="route"
                     :base-path="route.path"
@@ -33,7 +33,15 @@ export default {
     components: { SidebarItem, Logo },
     computed: {
         ...mapState(["settings"]),
-        ...mapGetters(["sidebarRouters", "sidebar"]),
+        ...mapGetters(["sidebarRouters", "sidebar", "roles"]),
+        filteredSidebarRouters() {
+            const roles = this.roles || []
+            const isStaffOnly = roles.includes("shop_staff") && !roles.includes("admin")
+            if (!isStaffOnly) {
+                return this.sidebarRouters
+            }
+            return (this.sidebarRouters || []).filter(route => !this.isHomeRoute(route))
+        },
         activeMenu() {
             const route = this.$route
             const { meta, path } = route
@@ -51,6 +59,17 @@ export default {
         },
         isCollapse() {
             return !this.sidebar.opened
+        }
+    },
+    methods: {
+        isHomeRoute(route) {
+            const path = String(route && route.path ? route.path : "").toLowerCase()
+            const title = String(route && route.meta && route.meta.title ? route.meta.title : "").toLowerCase()
+            return path === "/index"
+                || path === "index"
+                || path === "/shop/home"
+                || title === "首页"
+                || title.includes("商城首页")
         }
     }
 }
