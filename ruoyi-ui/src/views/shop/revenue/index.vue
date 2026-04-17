@@ -35,17 +35,20 @@
     <el-card shadow="never">
       <div slot="header" class="panel-header panel-header-row">
         <span><i class="el-icon-data-line" /> 营业额趋势</span>
-        <el-date-picker
-          v-model="trendRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="yyyy-MM-dd"
-          :picker-options="pickerOptions"
-          size="small"
-          @change="onTrendRangeChange"
-        />
+        <div class="trend-actions">
+          <el-date-picker
+            v-model="trendRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="yyyy-MM-dd"
+            :picker-options="pickerOptions"
+            size="small"
+            @change="onTrendRangeChange"
+          />
+          <el-button size="small" type="primary" plain @click="setLast7Days">近7天</el-button>
+        </div>
       </div>
       <p class="trend-hint">
         按<strong>付款时间</strong>汇总到自然日（无付款时间时用下单时间、完成时间兜底）。「完成」在今日、付款在别日 → 金额记在付款日。
@@ -137,6 +140,13 @@ export default {
       this.loadTrend()
     },
     onTrendRangeChange() {
+      this.loadTrend()
+    },
+    setLast7Days() {
+      const end = new Date()
+      const start = new Date()
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 6)
+      this.trendRange = [this.formatDateStr(start), this.formatDateStr(end)]
       this.loadTrend()
     },
     loadTrend() {
@@ -239,6 +249,12 @@ export default {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.trend-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .revenue-summary {

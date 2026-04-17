@@ -33,6 +33,20 @@ export function deleteCartItem(cartId) {
   return request({ url: `/shop/cart/${cartId}`, method: 'delete' })
 }
 
+// ===== 商品收藏 =====
+export function getFavoriteGameIds() {
+  return request({ url: '/shop/favorite/gameIds', method: 'get' })
+}
+export function getFavoriteList() {
+  return request({ url: '/shop/favorite/list', method: 'get' })
+}
+export function addFavorite(data) {
+  return request({ url: '/shop/favorite/add', method: 'post', data })
+}
+export function removeFavorite(gameId) {
+  return request({ url: `/shop/favorite/${gameId}`, method: 'delete' })
+}
+
 // ===== 订单 =====
 export function getMyOrders() {
   return request({ url: '/shop/order/my', method: 'get' })

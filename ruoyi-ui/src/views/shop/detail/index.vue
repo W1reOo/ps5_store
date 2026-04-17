@@ -55,6 +55,15 @@
                        :disabled="game.stock <= 0" @click="buyNow">
               立即购买
             </el-button>
+            <el-button
+              size="medium"
+              :icon="isFavorite ? 'el-icon-star-on' : 'el-icon-star-off'"
+              :type="isFavorite ? 'warning' : 'default'"
+              plain
+              @click="toggleFavorite"
+            >
+              {{ isFavorite ? '已收藏' : '收藏' }}
+            </el-button>
           </div>
 
           <!-- 描述 -->
@@ -127,7 +136,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { getGameDetail, addToCart, getGameComments, addGameComment } from '@/api/shop'
+import { getGameDetail, addToCart, getGameComments, addGameComment, getFavoriteGameIds, addFavorite, removeFavorite } from '@/api/shop'
 import { getToken } from '@/utils/auth'
 import { SHOP_DEFAULT_COVER, applyShopImageFallback } from '@/utils/shopImage'
 import CommentNode from './CommentNode.vue'
@@ -148,13 +157,19 @@ export default {
       commentPageSize: 10,
       commentContent: '',
       commentSubmitting: false,
-      replyTarget: null
+      replyTarget: null,
+      favoritedGameIds: []
     }
   },
   computed: {
     ...mapGetters(['token']),
     isLoggedIn() {
       return !!this.token
+    },
+    isFavorite() {
+      if (!this.game) return false
+      const id = Number(this.game.gameId)
+      return this.favoritedGameIds.some(x => Number(x) === id)
     }
   },
   created() {
@@ -167,7 +182,42 @@ export default {
         this.game = res.data
         this.commentPage = 1
         this.loadComments()
+        this.loadFavoriteIds()
       }).finally(() => { this.loading = false })
+    },
+    loadFavoriteIds() {
+      if (!getToken()) {
+        this.favoritedGameIds = []
+        return
+      }
+      getFavoriteGameIds()
+        .then(res => {
+          this.favoritedGameIds = res.data || []
+        })
+        .catch(() => {
+          this.favoritedGameIds = []
+        })
+    },
+    toggleFavorite() {
+      if (!getToken()) {
+        this.$message.warning('请先登录后再收藏')
+        this.$router.push({ path: '/login', query: { redirect: this.$route.fullPath } })
+        return
+      }
+      const gid = this.game.gameId
+      if (this.isFavorite) {
+        removeFavorite(gid).then(() => {
+          this.$message.success('已取消收藏')
+          this.favoritedGameIds = this.favoritedGameIds.filter(x => Number(x) !== Number(gid))
+        })
+      } else {
+        addFavorite({ gameId: gid }).then(() => {
+          this.$message.success('已加入收藏')
+          if (!this.favoritedGameIds.some(x => Number(x) === Number(gid))) {
+            this.favoritedGameIds = [...this.favoritedGameIds, gid]
+          }
+        })
+      }
     },
     loadComments() {
       if (!this.game) return

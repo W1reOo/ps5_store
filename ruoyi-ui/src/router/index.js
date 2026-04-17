@@ -108,6 +108,13 @@ export const constantRoutes = [
     meta: { title: '购物车' }
   },
   {
+    path: '/shop/favorites',
+    component: () => import('@/views/shop/favorites/index'),
+    hidden: true,
+    name: 'ShopFavorites',
+    meta: { title: '我的收藏' }
+  },
+  {
     path: '/shop/orders',
     component: () => import('@/views/shop/orders/index'),
     hidden: true,

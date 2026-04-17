@@ -13,7 +13,7 @@ NProgress.configure({ showSpinner: false })
 const whiteList = [
   '/', '/login', '/register',
   '/shop/home', '/shop/detail/*',
-  '/shop/account', '/shop/cart', '/shop/orders'
+  '/shop/account', '/shop/cart', '/shop/orders', '/shop/favorites'
 ]
 
 // 后台管理路径前缀（非 admin 不应进入）

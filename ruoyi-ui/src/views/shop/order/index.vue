@@ -22,9 +22,9 @@
       </el-form-item>
     </el-form>
 
-    <!-- 状态快捷标签 -->
+    <!-- 状态快捷标签（「全部」不能用 name=""，否则与 index 0 冲突，会和「待付款」name=0 抢同一标识） -->
     <el-tabs v-model="activeTab" @tab-click="handleTabChange" class="mb8">
-      <el-tab-pane label="全部" name="" />
+      <el-tab-pane label="全部" name="all" />
       <el-tab-pane label="待付款" name="0" />
       <el-tab-pane name="1">
         <span slot="label">待发货 <el-badge v-if="pendingCount > 0" :value="pendingCount" type="danger" /></span>
@@ -152,7 +152,7 @@ export default {
       total: 0,
       orderList: [],
       pendingCount: 0,
-      activeTab: '',
+      activeTab: 'all',
       queryParams: { pageNum: 1, pageSize: 10, orderNo: '', status: '' },
       deliverDialog: { open: false, orderId: null, orderNo: '' },
       deliverForm: { expressCompany: '', trackingNo: '' },
@@ -175,6 +175,12 @@ export default {
     this.getList()
     this.getPendingCount()
   },
+  watch: {
+    'queryParams.status'(val) {
+      const next = val === '' || val === null || val === undefined ? 'all' : String(val)
+      if (this.activeTab !== next) this.activeTab = next
+    }
+  },
   activated() {
     this.getPendingCount()
     this.getList()
@@ -195,9 +201,14 @@ export default {
       })
     },
     handleQuery() { this.queryParams.pageNum = 1; this.getList() },
-    resetQuery() { this.$refs.queryForm.resetFields(); this.activeTab = ''; this.getList() },
+    resetQuery() {
+      this.$refs.queryForm.resetFields()
+      this.activeTab = 'all'
+      this.getList()
+    },
     handleTabChange(tab) {
-      this.queryParams.status = tab.name
+      const raw = tab.name
+      this.queryParams.status = raw === 'all' ? '' : raw
       this.queryParams.pageNum = 1
       this.getList()
     },

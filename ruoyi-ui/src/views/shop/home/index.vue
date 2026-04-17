@@ -30,6 +30,11 @@
               <el-button icon="el-icon-shopping-cart-2">购物车</el-button>
             </el-badge>
           </router-link>
+          <router-link to="/shop/favorites">
+            <el-badge :value="favoriteCount" :hidden="favoriteCount === 0" :max="99" class="cart-badge">
+              <el-button icon="el-icon-star-off">我的收藏</el-button>
+            </el-badge>
+          </router-link>
           <router-link to="/shop/orders">
             <el-button icon="el-icon-document">我的订单</el-button>
           </router-link>
@@ -70,6 +75,15 @@
         <div class="hero-right" v-if="heroGame">
           <div class="featured-card" @click="goDetail(heroGame.gameId)">
             <div class="featured-cover">
+              <button
+                type="button"
+                class="card-fav-btn"
+                :class="{ active: isFav(heroGame.gameId) }"
+                @click.stop="toggleFavorite(heroGame)"
+                :title="isFav(heroGame.gameId) ? '取消收藏' : '收藏'"
+              >
+                <i :class="isFav(heroGame.gameId) ? 'el-icon-star-on' : 'el-icon-star-off'"></i>
+              </button>
               <img :src="heroGame.coverImage || defaultCover" :alt="heroGame.gameName" @error="onImgError" />
             </div>
             <div class="featured-info">
@@ -121,7 +135,18 @@
       <div class="hot-grid">
         <div v-for="game in hotGames" :key="game.gameId" class="hot-card" @click="goDetail(game.gameId)">
           <div class="hot-rank">TOP {{ hotGames.indexOf(game) + 1 }}</div>
-          <img :src="game.coverImage || defaultCover" class="hot-image" @error="onImgError" />
+          <div class="hot-cover-wrap">
+            <button
+              type="button"
+              class="card-fav-btn"
+              :class="{ active: isFav(game.gameId) }"
+              @click.stop="toggleFavorite(game)"
+              :title="isFav(game.gameId) ? '取消收藏' : '收藏'"
+            >
+              <i :class="isFav(game.gameId) ? 'el-icon-star-on' : 'el-icon-star-off'"></i>
+            </button>
+            <img :src="game.coverImage || defaultCover" class="hot-image" @error="onImgError" />
+          </div>
           <div class="hot-info">
             <div class="hot-name">{{ game.gameName }}</div>
             <div class="hot-meta">{{ game.categoryName }} · 销量 {{ game.sales }}</div>
@@ -168,7 +193,7 @@
             <div class="mini-title">商城说明</div>
             <ul class="tips-list">
               <li>首页和详情页可免登录浏览</li>
-              <li>购物车、下单、订单管理需要登录</li>
+              <li>收藏、购物车、下单需要登录</li>
               <li>账号中心可查看全部订单状态</li>
             </ul>
           </div>
@@ -178,6 +203,15 @@
           <div v-loading="loading" class="game-grid">
             <div v-for="game in games" :key="game.gameId" class="game-card" @click="goDetail(game.gameId)">
               <div class="card-cover">
+                <button
+                  type="button"
+                  class="card-fav-btn"
+                  :class="{ active: isFav(game.gameId) }"
+                  @click.stop="toggleFavorite(game)"
+                  :title="isFav(game.gameId) ? '取消收藏' : '收藏'"
+                >
+                  <i :class="isFav(game.gameId) ? 'el-icon-star-on' : 'el-icon-star-off'"></i>
+                </button>
                 <img :src="game.coverImage || defaultCover" :alt="game.gameName" @error="onImgError" />
                 <div class="card-tags">
                   <span v-if="game.isHot === '1'" class="tag-hot">HOT</span>
@@ -238,6 +272,7 @@
         <div class="footer-links">
           <span @click="$router.push('/shop/home')">商城首页</span>
           <span @click="$router.push('/shop/cart')">购物车</span>
+          <span @click="$router.push('/shop/favorites')">我的收藏</span>
           <span @click="$router.push('/shop/orders')">我的订单</span>
           <span @click="$router.push('/shop/account')">账号中心</span>
         </div>
@@ -247,7 +282,7 @@
 </template>
 
 <script>
-import { getGameList, getCategoryList, addToCart, getCartList } from '@/api/shop'
+import { getGameList, getCategoryList, addToCart, getCartList, getFavoriteGameIds, addFavorite, removeFavorite } from '@/api/shop'
 import { getToken } from '@/utils/auth'
 import { SHOP_DEFAULT_COVER, applyShopImageFallback } from '@/utils/shopImage'
 
@@ -261,6 +296,7 @@ export default {
       categories: [],
       currentCategory: null,
       cartCount: 0,
+      favoritedGameIds: [],
       query: { gameName: '', pageNum: 1, pageSize: 12, isHot: '', isNew: '' },
       defaultCover: SHOP_DEFAULT_COVER
     }
@@ -274,12 +310,16 @@ export default {
     },
     hotGames() {
       return this.games.filter(item => item.isHot === '1').slice(0, 4)
+    },
+    favoriteCount() {
+      return this.favoritedGameIds.length
     }
   },
   created() {
     this.loadCategories()
     this.loadGames()
     this.loadCartCount()
+    this.loadFavoriteIds()
   },
   methods: {
     loadCategories() {
@@ -308,6 +348,44 @@ export default {
       }).catch(() => {
         this.cartCount = 0
       })
+    },
+    loadFavoriteIds() {
+      if (!this.hasToken) {
+        this.favoritedGameIds = []
+        return
+      }
+      getFavoriteGameIds()
+        .then(res => {
+          this.favoritedGameIds = res.data || []
+        })
+        .catch(() => {
+          this.favoritedGameIds = []
+        })
+    },
+    isFav(gameId) {
+      const id = Number(gameId)
+      return this.favoritedGameIds.some(x => Number(x) === id)
+    },
+    toggleFavorite(game) {
+      if (!this.hasToken) {
+        this.$message.warning('请先登录后再收藏')
+        this.$router.push('/login?redirect=%2Fshop%2Fhome')
+        return
+      }
+      const gid = game.gameId
+      if (this.isFav(gid)) {
+        removeFavorite(gid).then(() => {
+          this.$message.success('已取消收藏')
+          this.favoritedGameIds = this.favoritedGameIds.filter(x => Number(x) !== Number(gid))
+        })
+      } else {
+        addFavorite({ gameId: gid }).then(() => {
+          this.$message.success('已加入收藏')
+          if (!this.isFav(gid)) {
+            this.favoritedGameIds = [...this.favoritedGameIds, gid]
+          }
+        })
+      }
     },
     filterCategory(id) {
       this.currentCategory = id
@@ -532,10 +610,52 @@ export default {
   cursor: pointer;
 }
 
+.featured-cover {
+  position: relative;
+  min-height: 200px;
+}
+
 .featured-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hot-cover-wrap {
+  position: relative;
+}
+
+.card-fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e5e7eb;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.card-fav-btn:hover {
+  transform: scale(1.06);
+  color: #fbbf24;
+}
+
+.card-fav-btn.active {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.card-fav-btn i {
+  font-size: 18px;
 }
 
 .featured-info {

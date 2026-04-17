@@ -9,6 +9,12 @@
         <result property="revenue" column="revenue"/>
     </resultMap>
 
+    <!-- 全局未开启 mapUnderscoreToCamelCase 时需显式映射列名 -->
+    <resultMap type="Ps5DailyRevenuePoint" id="DailyRevenueResult">
+        <result property="statDate" column="stat_date"/>
+        <result property="revenue" column="revenue"/>
+    </resultMap>
+
     <!-- 有效销售：已付款且未最终退款。退款申请中(5)仍计入，仅已退款(6)剔除 -->
     <select id="selectTotalPaidRevenue" resultType="java.math.BigDecimal">
         SELECT COALESCE(SUM(total_amount), 0)
@@ -43,7 +49,7 @@
 
     <!-- 按日营业额：归属日 = 付款时间 > 创建时间 > 完成时间（仅当前两者为空时，如历史/手工数据） -->
     <!-- 说明：与总览相同订单状态；若用户选「完成日」看曲线，需注意金额仍记在付款日（业务上营业额以支付为准） -->
-    <select id="selectDailyRevenue" resultType="Ps5DailyRevenuePoint">
+    <select id="selectDailyRevenue" resultMap="DailyRevenueResult">
         SELECT DATE_FORMAT(
                    COALESCE(o.pay_time, o.create_time, o.finish_time),
                    '%Y-%m-%d'

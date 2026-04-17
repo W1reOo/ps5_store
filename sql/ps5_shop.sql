@@ -61,6 +61,20 @@ CREATE TABLE IF NOT EXISTS `ps5_cart` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 COMMENT='PS5购物车表';
 
 -- ----------------------------
+-- 3b. 商品收藏表（用户维度，同一用户同一游戏仅一条）
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ps5_favorite` (
+  `favorite_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '收藏ID',
+  `user_id`     bigint(20) NOT NULL COMMENT '用户ID',
+  `game_id`     bigint(20) NOT NULL COMMENT '游戏ID',
+  `create_time` datetime   DEFAULT NULL COMMENT '收藏时间',
+  PRIMARY KEY (`favorite_id`),
+  UNIQUE KEY `uk_user_game` (`user_id`, `game_id`),
+  KEY `idx_user_time` (`user_id`, `create_time`),
+  KEY `idx_game` (`game_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='PS5商品收藏表';
+
+-- ----------------------------
 -- 4. 订单表
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `ps5_order` (

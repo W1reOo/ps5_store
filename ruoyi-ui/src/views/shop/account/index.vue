@@ -21,7 +21,14 @@
             <i class="el-icon-arrow-left"></i> 返回商城
           </el-button>
           <router-link to="/shop/cart">
-            <el-button icon="el-icon-shopping-cart-2" size="small">购物车</el-button>
+            <el-badge :value="cartCount" :max="99" class="nav-badge">
+              <el-button icon="el-icon-shopping-cart-2" size="small">购物车</el-button>
+            </el-badge>
+          </router-link>
+          <router-link to="/shop/favorites">
+            <el-badge :value="favoriteCount" :hidden="favoriteCount === 0" :max="99" class="nav-badge">
+              <el-button icon="el-icon-star-off" size="small">我的收藏</el-button>
+            </el-badge>
           </router-link>
           <router-link to="/shop/orders">
             <el-button icon="el-icon-document" size="small">我的订单</el-button>
@@ -430,7 +437,8 @@
 <script>
 import { mapGetters } from 'vuex'
 import { getUserProfile, updateUserProfile, updateUserPwd } from '@/api/system/user'
-import { getMyOrders, payOrder, cancelOrder, finishOrder, requestRefund, getAddressList, addAddress, updateAddress, deleteAddress, setDefaultAddress, getRegions } from '@/api/shop'
+import { getMyOrders, payOrder, cancelOrder, finishOrder, requestRefund, getAddressList, addAddress, updateAddress, deleteAddress, setDefaultAddress, getRegions, getCartList, getFavoriteGameIds } from '@/api/shop'
+import { getToken } from '@/utils/auth'
 import { SHOP_DEFAULT_COVER, applyShopImageFallback } from '@/utils/shopImage'
 import UserAvatar from '@/views/system/user/profile/userAvatar.vue'
 
@@ -507,11 +515,16 @@ export default {
           { validator: confirmPwdValidator, trigger: 'blur' }
         ]
       },
-      pwdSaving: false
+      pwdSaving: false,
+      cartCount: 0,
+      favoritedGameIds: []
     }
   },
   computed: {
     ...mapGetters(['avatar', 'name', 'nickName']),
+    favoriteCount() {
+      return this.favoritedGameIds.length
+    },
     userName() { return this.name },
     userNickName() { return this.nickName },
     recentOrders() { return this.allOrders.slice(0, 3) },
@@ -537,11 +550,41 @@ export default {
     this.loadOrders()
     this.loadAddresses()
     this.loadProvinces()
+    this.loadCartCount()
+    this.loadFavoriteIds()
     if (this.$route.query.tab) {
       this.activeTab = this.$route.query.tab
     }
   },
+  activated() {
+    this.loadCartCount()
+    this.loadFavoriteIds()
+  },
   methods: {
+    loadCartCount() {
+      if (!getToken()) {
+        this.cartCount = 0
+        return
+      }
+      getCartList().then(res => {
+        this.cartCount = (res.data || []).length
+      }).catch(() => {
+        this.cartCount = 0
+      })
+    },
+    loadFavoriteIds() {
+      if (!getToken()) {
+        this.favoritedGameIds = []
+        return
+      }
+      getFavoriteGameIds()
+        .then(res => {
+          this.favoritedGameIds = res.data || []
+        })
+        .catch(() => {
+          this.favoritedGameIds = []
+        })
+    },
     loadProfile() {
       getUserProfile().then(res => {
         this.profile = res.data || {}
@@ -789,6 +832,10 @@ export default {
 .brand-title { color: #fff; font-size: 15px; font-weight: 700; line-height: 1.2; }
 .brand-subtitle { color: #64748b; font-size: 11px; }
 .nav-actions { display: flex; align-items: center; gap: 10px; }
+.nav-actions .nav-badge {
+  display: inline-block;
+  line-height: 1;
+}
 
 /* ===== 页面主体 ===== */
 .page-body {
